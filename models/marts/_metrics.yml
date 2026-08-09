@@ -1,0 +1,33 @@
+version: 2
+
+# STRETCH GOAL (Phase 6 in PROJECT_PLAN.md) — dbt's semantic layer
+# (MetricFlow). This file is a starting skeleton; it needs a matching
+# semantic model (see MetricFlow docs) pointing at fct_job_postings before
+# these metrics will compile. Not required for the core project to work,
+# but a strong differentiator if you get to it — it's a newer skill and
+# most portfolio projects don't have one.
+#
+# Docs: https://docs.getdbt.com/docs/build/build-metrics-intro
+
+metrics:
+  - name: postings_count
+    label: "Job Postings"
+    description: "Count of distinct postings observed active."
+    type: simple
+    type_params:
+      measure: posting_count  # TODO: define this measure on a semantic model over fct_job_postings
+
+  - name: median_salary
+    label: "Median Salary (Min)"
+    description: "Median of salary_min across postings with salary data."
+    type: simple
+    type_params:
+      measure: salary_min_median  # TODO: define this measure
+
+  - name: sponsor_rate
+    label: "Verified Sponsor Rate"
+    description: "Share of postings at companies verified on the UK sponsor register."
+    type: ratio
+    type_params:
+      numerator: verified_sponsor_postings_count   # TODO: define
+      denominator: postings_count                    # TODO: define

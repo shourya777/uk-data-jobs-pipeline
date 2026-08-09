@@ -1,0 +1,51 @@
+name: CI — dbt build & test
+
+# Runs on every PR and push to main. Uses the `ci` dbt target, which reads
+# from the seed fixtures (seeds/sample_job_postings.csv etc.) instead of
+# live raw tables — no API keys or secrets needed for this workflow, which
+# means anyone forking this repo can see it pass without any setup.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  dbt-build:
+    runs-on: ubuntu-latest
+    env:
+      DBT_PROFILES_DIR: ${{ github.workspace }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Copy CI profile
+        run: cp profiles.yml.example profiles.yml
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: dbt seed
+        run: dbt seed --target ci
+
+      - name: dbt build (run models + tests)
+        run: dbt build --target ci
+
+      - name: dbt snapshot
+        run: dbt snapshot --target ci
+
+      # sqlfluff catches SQL style issues before a human reviewer has to.
+      # Uncomment once you've added a .sqlfluff config (see dbt-labs style
+      # guide) — left off by default so this workflow passes out of the box.
+      # - name: Lint SQL
+      #   run: |
+      #     pip install sqlfluff sqlfluff-templater-dbt
+      #     sqlfluff lint models --dialect duckdb --templater dbt

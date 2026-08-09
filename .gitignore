@@ -1,0 +1,23 @@
+# dbt
+target/
+dbt_packages/
+logs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Data (raw pulls + local warehouse — don't commit real data or credentials)
+data/raw/*
+!data/raw/.gitkeep
+data/warehouse.duckdb
+data/ci_warehouse.duckdb
+
+# Secrets
+.env
+profiles.yml
+
+# OS
+.DS_Store

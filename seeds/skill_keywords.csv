@@ -1,0 +1,21 @@
+skill_name,pattern
+SQL,\bsql\b
+Python,\bpython\b
+dbt,\bdbt\b
+Airflow,\bairflow\b
+Snowflake,\bsnowflake\b
+BigQuery,\bbigquery\b
+Redshift,\bredshift\b
+Looker,\blooker\b
+Tableau,\btableau\b
+Power BI,power\s?bi
+Spark,\bspark\b
+Kafka,\bkafka\b
+Terraform,\bterraform\b
+Databricks,\bdatabricks\b
+Docker,\bdocker\b
+Git,\bgit\b
+AWS,\baws\b
+GCP,\bgcp\b
+Azure,\bazure\b
+Excel,\bexcel\b

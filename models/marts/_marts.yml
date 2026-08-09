@@ -1,0 +1,68 @@
+version: 2
+
+models:
+  - name: dim_company
+    description: One row per distinct company seen in job postings, with sponsor verification status.
+    columns:
+      - name: company_key
+        data_tests:
+          - unique
+          - not_null
+      - name: sponsor_category
+        data_tests:
+          - accepted_values:
+              values: ["Direct Employer", "Consulting", "IT Consulting", "Public Sector", "Unverified"]
+
+  - name: dim_location
+    description: One row per distinct location string seen in job postings.
+    columns:
+      - name: location_key
+        data_tests:
+          - unique
+          - not_null
+
+  - name: dim_date
+    description: Standard date dimension, generated via dbt_date.
+    columns:
+      - name: date_day
+        data_tests:
+          - unique
+          - not_null
+
+  - name: dim_skill
+    description: TODO once seeds/skill_keywords.csv + this model are wired up — add unique/not_null tests on skill_key.
+
+  - name: fct_job_postings
+    description: >
+      Grain: one row per posting_id per calendar day it was observed
+      active (derived from the SCD2 snapshot). This is the central fact
+      table everything else joins to.
+    columns:
+      - name: fact_key
+        data_tests:
+          - unique
+          - not_null
+      - name: company_key
+        data_tests:
+          - relationships:
+              to: ref('dim_company')
+              field: company_key
+      - name: location_key
+        data_tests:
+          - relationships:
+              to: ref('dim_location')
+              field: location_key
+      - name: date_day
+        data_tests:
+          - relationships:
+              to: ref('dim_date')
+              field: date_day
+      - name: salary_min
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 500000
+              row_condition: "salary_min is not null"
+
+  - name: bridge_posting_skill
+    description: TODO once implemented — grain is (posting_id, skill_key), no natural unique single column, add a dbt_utils.unique_combination_of_columns test instead.

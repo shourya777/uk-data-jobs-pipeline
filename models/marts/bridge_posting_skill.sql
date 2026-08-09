@@ -1,0 +1,27 @@
+-- TODO (learning exercise): the payoff model for dim_skill.
+--
+-- Grain: one row per (posting_id, skill_key) where the posting's
+-- description matches that skill's regex pattern. This is a classic
+-- bridge/associative table for a many-to-many relationship (one posting
+-- can mention many skills; one skill appears in many postings) — a good
+-- thing to be able to explain in an interview.
+--
+-- DuckDB has `regexp_matches(string, pattern)` built in, so this can be a
+-- single cross join + filter:
+--
+--   select
+--       p.posting_id,
+--       s.skill_key
+--   from {{ ref('int_postings_sponsor_matched') }} p
+--   cross join {{ ref('dim_skill') }} s
+--   where regexp_matches(lower(p.description), s.pattern)
+--
+-- Careful with cross join cost: 25 sample postings x 20 skills = 500 rows
+-- to evaluate, trivial. At real scale (thousands of postings) this is
+-- still fine for a portfolio project's data volume, but it's worth
+-- knowing this wouldn't be how you'd do it at true production scale
+-- (you'd push the matching into the ingestion step or use a proper
+-- text-search index) — a good thing to mention as a known limitation in
+-- your README's "what I'd do differently at scale" section.
+
+select 1 as placeholder where false -- replace this whole model

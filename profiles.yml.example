@@ -1,0 +1,39 @@
+# Copy this to ~/.dbt/profiles.yml (or set DBT_PROFILES_DIR to this repo).
+# Default target is local DuckDB — zero setup, no credentials needed.
+#
+# The `snowflake` and `bigquery` targets are included commented-out to show
+# this project is warehouse-agnostic — swapping targets is a config change,
+# not a rewrite of any model SQL. Worth mentioning in interviews.
+
+uk_data_jobs_pipeline:
+  target: dev
+  outputs:
+
+    dev:
+      type: duckdb
+      path: 'data/warehouse.duckdb'
+      threads: 4
+
+    ci:
+      type: duckdb
+      path: 'data/ci_warehouse.duckdb'
+      threads: 4
+
+    # prod:
+    #   type: snowflake
+    #   account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+    #   user: "{{ env_var('SNOWFLAKE_USER') }}"
+    #   password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+    #   role: transformer
+    #   database: uk_data_jobs
+    #   warehouse: compute_xs
+    #   schema: marts
+    #   threads: 4
+
+    # prod_bq:
+    #   type: bigquery
+    #   method: service-account
+    #   project: your-gcp-project
+    #   dataset: uk_data_jobs
+    #   keyfile: "{{ env_var('GCP_KEYFILE_PATH') }}"
+    #   threads: 4

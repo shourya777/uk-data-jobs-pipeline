@@ -1,0 +1,45 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Tables loaded by ingest/load_to_duckdb.py from the Adzuna API and the
+      UK sponsor register CSV. In the `ci` target these don't exist yet
+      (no live ingestion runs in CI) — staging models fall back to the
+      `sample_job_postings` / `sample_sponsor_register` seeds instead. See
+      models/staging/stg_job_postings.sql for the pattern.
+    schema: main
+    tables:
+      - name: job_postings
+        identifier: raw_job_postings
+        description: One row per unique Adzuna job posting id, upserted on each ingestion run.
+        loaded_at_field: loaded_at
+        freshness:
+          warn_after: {count: 30, period: hour}
+          error_after: {count: 48, period: hour}
+        columns:
+          - name: id
+            description: Adzuna's unique job id.
+            data_tests:
+              - unique
+              - not_null
+          - name: title
+            data_tests:
+              - not_null
+          - name: company_name
+            data_tests:
+              - not_null
+          - name: created_at
+            description: When Adzuna reports the posting was created.
+
+      - name: sponsor_register
+        identifier: raw_sponsor_register
+        description: Raw load of the UK Home Office "Register of licensed sponsors: workers" CSV.
+        loaded_at_field: loaded_at
+        freshness:
+          warn_after: {count: 10, period: day}
+          error_after: {count: 21, period: day}
+        columns:
+          - name: organisation_name
+            data_tests:
+              - not_null

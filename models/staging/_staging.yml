@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: stg_job_postings
+    description: One row per raw job posting, cleaned and renamed. Grain = one row per posting_id.
+    columns:
+      - name: posting_id
+        data_tests:
+          - unique
+          - not_null
+      - name: job_title
+        data_tests:
+          - not_null
+      - name: company_name
+        data_tests:
+          - not_null
+      - name: salary_min
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "<= salary_max"
+              config:
+                where: "salary_min is not null and salary_max is not null"
+
+  - name: stg_sponsor_register
+    description: >
+      TODO once stg_sponsor_register.sql is implemented — add column tests
+      here mirroring stg_job_postings (not_null on organisation_name at
+      minimum). Left mostly empty on purpose so you practice writing dbt
+      schema tests yourself.

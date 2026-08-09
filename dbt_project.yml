@@ -1,0 +1,37 @@
+name: 'uk_data_jobs_pipeline'
+version: '1.0.0'
+config-version: 2
+
+profile: 'uk_data_jobs_pipeline'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  # Rolling window used by several models — override in CI vs prod if needed.
+  posting_lookback_days: 90
+
+models:
+  uk_data_jobs_pipeline:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+
+snapshots:
+  uk_data_jobs_pipeline:
+    +target_schema: snapshots

@@ -1,0 +1,81 @@
+name: Daily refresh — ingest + dbt run + publish docs
+
+# Runs the real pipeline against live data once a day. Needs two repo
+# secrets set (Settings -> Secrets and variables -> Actions):
+#   ADZUNA_APP_ID
+#   ADZUNA_APP_KEY
+# (free — sign up at https://developer.adzuna.com/)
+#
+# This only starts working once ingest/adzuna_client.py, ingest/
+# sponsor_register.py and ingest/load_to_duckdb.py have their TODOs
+# implemented — see PROJECT_PLAN.md Phase 1.
+
+on:
+  schedule:
+    - cron: "0 7 * * *"   # 07:00 UTC daily — adjust to taste
+  workflow_dispatch: {}    # lets you trigger a manual run from the Actions tab
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      DBT_PROFILES_DIR: ${{ github.workspace }}
+      ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+      ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Copy dev profile
+        run: cp profiles.yml.example profiles.yml
+
+      - name: Ingest — Adzuna postings
+        run: python -m ingest.adzuna_client
+
+      - name: Ingest — UK sponsor register
+        run: python -m ingest.sponsor_register
+
+      - name: Load raw data into DuckDB
+        run: python -m ingest.load_to_duckdb
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: dbt snapshot (capture SCD2 history)
+        run: dbt snapshot --target dev
+
+      - name: dbt build (run models + tests)
+        run: dbt build --target dev
+
+      - name: dbt docs generate
+        run: dbt docs generate --target dev
+
+      # Publishes dbt's generated docs site to GitHub Pages so recruiters
+      # can click through your data model/lineage without cloning the repo.
+      # Requires Pages enabled on the repo (Settings -> Pages -> Source:
+      # gh-pages branch) — one-time setup.
+      - name: Publish dbt docs to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target
+
+      # Commits the refreshed DuckDB file back to the repo so the
+      # Streamlit dashboard (deployed separately) always has current data.
+      # Alternative: point Streamlit at a persisted DuckDB in cloud storage
+      # instead of committing a binary to git — worth a README note either
+      # way about the tradeoff you picked.
+      - name: Commit refreshed warehouse
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/warehouse.duckdb
+          git diff --cached --quiet || git commit -m "chore: daily data refresh $(date -u +%Y-%m-%d)"
+          git push
