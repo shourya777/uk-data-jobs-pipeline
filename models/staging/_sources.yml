@@ -7,7 +7,10 @@ sources:
       UK sponsor register CSV. In the `ci` target these don't exist yet
       (no live ingestion runs in CI) — staging models fall back to the
       `sample_job_postings` / `sample_sponsor_register` seeds instead. See
-      models/staging/stg_job_postings.sql for the pattern.
+      models/staging/stg_job_postings.sql for the pattern. Column-level
+      quality tests live on the staging models (_staging.yml), not here,
+      since the staging models are what actually resolve correctly in
+      both CI and prod.
     schema: main
     tables:
       - name: job_postings
@@ -20,26 +23,17 @@ sources:
         columns:
           - name: id
             description: Adzuna's unique job id.
-            data_tests:
-              - unique
-              - not_null
           - name: title
-            data_tests:
-              - not_null
           - name: company_name
-            data_tests:
-              - not_null
           - name: created_at
             description: When Adzuna reports the posting was created.
 
       - name: sponsor_register
         identifier: raw_sponsor_register
-        description: Raw load of the UK Home Office "Register of licensed sponsors: workers" CSV.
+        description: 'Raw load of the UK Home Office "Register of licensed sponsors: workers" CSV.'
         loaded_at_field: loaded_at
         freshness:
           warn_after: {count: 10, period: day}
           error_after: {count: 21, period: day}
         columns:
           - name: organisation_name
-            data_tests:
-              - not_null
