@@ -27,6 +27,12 @@ LEARNING TODOs (this is the part you should implement yourself):
 
 import os
 import requests
+import time
+import json
+from datetime import datetime, timezone
+from dotenv import load_dotenv
+load_dotenv()
+from pathlib import Path
 
 ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs/gb/search"
 
@@ -45,14 +51,7 @@ DEFAULT_LOCATION = "London"
 
 
 def fetch_postings(search_term: str, location: str = DEFAULT_LOCATION, page: int = 1, results_per_page: int = 50) -> dict:
-    """
-    Fetch one page of results for a single search term.
 
-    Returns the raw parsed JSON response. See the Adzuna docs for the full
-    response schema — the fields you'll care about most for this project are:
-    id, title, company.display_name, location.display_name, description,
-    salary_min, salary_max, created (posting date), redirect_url (apply link).
-    """
     app_id = os.environ.get("ADZUNA_APP_ID")
     app_key = os.environ.get("ADZUNA_APP_KEY")
     if not app_id or not app_key:
@@ -73,24 +72,45 @@ def fetch_postings(search_term: str, location: str = DEFAULT_LOCATION, page: int
     resp.raise_for_status()
     return resp.json()
 
-
-def fetch_all_postings() -> list[dict]:
+def fetch_all_postings(max_per_term: int = 5) -> list[dict]:
     """
-    TODO (learning exercise): loop over SEARCH_TERMS and paginate through
-    each one using fetch_postings(), dedupe by Adzuna `id` (the same job
-    can surface under multiple search terms), and return a flat list of
-    posting dicts ready to write to data/raw/.
-
-    A minimal correct implementation is ~20 lines. Resist the urge to
-    over-engineer this on day one — get one search term, one page, working
-    end to end into DuckDB first, then come back and expand it.
+    Pulls postings for every term in SEARCH_TERMS, paginating each one,
+    and dedupes across terms by Adzuna's job `id`.
     """
-    raise NotImplementedError("Implement pagination + dedupe here — see the docstring.")
+    results_by_id = {}
 
+    for term in SEARCH_TERMS:
+        page = 1
+        collected_for_term = 0
+
+        while collected_for_term < max_per_term:
+            data = fetch_postings(term, page=page)
+            jobs = data.get("results", [])
+
+            if not jobs:
+                break 
+
+            for job in jobs:
+                results_by_id[job["id"]] = job
+
+            collected_for_term += len(jobs)
+            page += 1
+            time.sleep(0.5)  
+
+    return list(results_by_id.values())
+
+def save_postings(jobs: list[dict]) -> str:
+    """Writes fetched postings to data/raw/ as a timestamped JSON file."""
+    out_dir = Path(__file__).parent.parent / "data" / "raw"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    out_path = out_dir / f"adzuna_{timestamp}.json"
+    with open(out_path, "w") as f:
+        json.dump(jobs, f, indent=2)
+    return str(out_path)
 
 if __name__ == "__main__":
-    # Smoke test: pull page 1 for the first search term and print a summary.
-    data = fetch_postings(SEARCH_TERMS[0])
-    print(f"Total results reported by Adzuna: {data.get('count')}")
-    for job in data.get("results", [])[:5]:
-        print(f"- {job['title']} @ {job['company']['display_name']} ({job['location']['display_name']})")
+    jobs = fetch_all_postings(max_per_term=5)
+    print(f"Collected {len(jobs)} unique postings across {len(SEARCH_TERMS)} search terms")
+    path = save_postings(jobs)
+    print(f"Saved to {path}")
