@@ -4,31 +4,16 @@ with:
 
     streamlit run dashboard/app.py
 
-Deploy free at https://streamlit.io/cloud once it's working locally —
-point it at this file, it'll pick up requirements.txt automatically.
-Link the live URL from your README; a clickable dashboard beats a
-screenshot every time.
-
-LEARNING TODOs — build these out one at a time, commit after each:
-  1. Postings over time (line chart) — count of fct_job_postings rows
-     grouped by date_day.
-  2. Top hiring companies (bar chart) — count of distinct posting_id
-     grouped by company_name from dim_company, filterable by
-     sponsor_category.
-  3. Skills in demand (bar chart) — count from bridge_posting_skill
-     joined to dim_skill, once that model is implemented.
-  4. Salary distribution (box plot or histogram) — salary_min/salary_max
-     from fct_job_postings, split by sponsor_category.
-
-Keep queries simple — this dashboard should mostly be `SELECT ... FROM
-marts.fct_... GROUP BY ...`, not a place to put business logic. If you
-find yourself writing a complex CASE WHEN here, it probably belongs in a
-dbt mart instead.
+Skills-in-demand chart is intentionally left as a TODO: it depends on
+bridge_posting_skill.sql, which is still an unimplemented stub (deferred
+stretch goal, same as fuzzy_match_sponsor).
 """
 
 from pathlib import Path
 
 import duckdb
+import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 DB_PATH = Path(__file__).parent.parent / "data" / "warehouse.duckdb"
@@ -70,14 +55,72 @@ with col3:
     st.metric("Verified sponsors", verified)
 
 st.divider()
-st.subheader("TODO: postings over time")
-st.info("Implement: SELECT date_day, count(distinct posting_id) FROM marts.fct_job_postings GROUP BY 1 ORDER BY 1, then st.line_chart(...).")
 
-st.subheader("TODO: top hiring companies")
-st.info("Implement: join fct_job_postings to dim_company, group by company_name, count distinct posting_id, st.bar_chart(...).")
+st.subheader("Postings over time")
+postings_over_time = con.execute(
+    """
+    select date_day, count(distinct posting_id) as open_postings
+    from marts.fct_job_postings
+    group by 1
+    order by 1
+    """
+).df()
+if postings_over_time.empty:
+    st.info("No data yet — run the ingestion + dbt pipeline first.")
+else:
+    st.line_chart(postings_over_time.set_index("date_day"))
 
-st.subheader("TODO: skills in demand")
-st.info("Implement once bridge_posting_skill exists: join to dim_skill, count postings per skill, st.bar_chart(...).")
+st.subheader("Top hiring companies")
+category_options = ["All"] + [
+    row[0]
+    for row in con.execute(
+        "select distinct sponsor_category from marts.dim_company order by 1"
+    ).fetchall()
+]
+selected_category = st.selectbox("Filter by sponsor category", category_options)
 
-st.subheader("TODO: salary distribution by category")
-st.info("Implement: salary_min/salary_max from fct_job_postings grouped by sponsor_category, plotly box plot via st.plotly_chart(...).")
+query = """
+    select dc.company_name, count(distinct f.posting_id) as posting_count
+    from marts.fct_job_postings f
+    join marts.dim_company dc on f.company_key = dc.company_key
+"""
+params = []
+if selected_category != "All":
+    query += " where dc.sponsor_category = ?"
+    params.append(selected_category)
+query += " group by 1 order by posting_count desc limit 15"
+
+top_companies = con.execute(query, params).df()
+if top_companies.empty:
+    st.info("No companies match this filter yet.")
+else:
+    st.bar_chart(top_companies.set_index("company_name"))
+
+st.subheader("Skills in demand")
+st.info(
+    "Blocked on models/marts/bridge_posting_skill.sql, which is still an "
+    "unimplemented stub. Once that model exists: join fct_job_postings to "
+    "bridge_posting_skill to dim_skill, count(distinct posting_id) per "
+    "skill_name, st.bar_chart(...)."
+)
+
+st.subheader("Salary distribution by category")
+salary_df = con.execute(
+    """
+    select sponsor_category, salary_min, salary_max
+    from marts.fct_job_postings
+    where salary_min is not null and salary_max is not null
+    """
+).df()
+if salary_df.empty:
+    st.info("No salary data available yet (Adzuna doesn't report salary on every posting).")
+else:
+    salary_df["salary_mid"] = (salary_df["salary_min"] + salary_df["salary_max"]) / 2
+    fig = px.box(
+        salary_df,
+        x="sponsor_category",
+        y="salary_mid",
+        points="all",
+        labels={"salary_mid": "Estimated salary (midpoint, GBP)", "sponsor_category": "Sponsor category"},
+    )
+    st.plotly_chart(fig, use_container_width=True)
