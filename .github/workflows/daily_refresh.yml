@@ -18,6 +18,8 @@ on:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       DBT_PROFILES_DIR: ${{ github.workspace }}
       ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
