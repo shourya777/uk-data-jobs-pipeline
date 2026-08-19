@@ -1,9 +1,19 @@
 -- Mirrors the pattern in stg_job_postings.sql: fall back to the seed in
 -- CI (no live ingestion runs there), select from the real source otherwise.
+-- Note: the CI seed preserves the government's original CSV headers
+-- ("Organisation Name" etc.) since it was captured verbatim from the real
+-- register for realism — so unlike stg_job_postings, this branch needs an
+-- explicit rename to snake_case before the two branches line up.
 
 {% if target.name == 'ci' %}
     with source as (
-        select * from {{ ref('sample_sponsor_register') }}
+        select
+            "Organisation Name" as organisation_name,
+            "Town/City"         as town_city,
+            "County"            as county,
+            "Type & Rating"     as type_and_rating,
+            "Route"             as route
+        from {{ ref('sample_sponsor_register') }}
     )
 {% else %}
     with source as (
