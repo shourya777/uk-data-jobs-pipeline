@@ -39,8 +39,6 @@ jobs:
       - name: dbt build (run models + tests)
         run: dbt build --target ci
 
-      - name: dbt snapshot
-        run: dbt snapshot --target ci
 
       # sqlfluff catches SQL style issues before a human reviewer has to.
       # Uncomment once you've added a .sqlfluff config (see dbt-labs style

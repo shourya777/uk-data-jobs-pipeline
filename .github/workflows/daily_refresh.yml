@@ -48,8 +48,6 @@ jobs:
       - name: dbt deps
         run: dbt deps
 
-      - name: dbt snapshot (capture SCD2 history)
-        run: dbt snapshot --target dev
 
       - name: dbt build (run models + tests)
         run: dbt build --target dev
