@@ -1,9 +1,7 @@
 
     
     
-    
-    create table "warehouse"."main"."sample_sponsor_register" ("Organisation Name" text,"Town/City" text,"County" text,"Type & Rating" text,"Route" text)
-  ;
+    truncate table "warehouse"."main"."sample_sponsor_register";
     -- dbt seed --
     
           COPY "warehouse"."main"."sample_sponsor_register" FROM '/home/runner/work/uk-data-jobs-pipeline/uk-data-jobs-pipeline/seeds/sample_sponsor_register.csv' (FORMAT CSV, HEADER TRUE, DELIMITER ',')

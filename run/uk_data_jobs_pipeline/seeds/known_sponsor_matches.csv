@@ -1,9 +1,7 @@
 
     
     
-    
-    create table "warehouse"."main"."known_sponsor_matches" ("company_name_raw" text,"sponsor_entity" text,"category" text)
-  ;
+    truncate table "warehouse"."main"."known_sponsor_matches";
     -- dbt seed --
     
           COPY "warehouse"."main"."known_sponsor_matches" FROM '/home/runner/work/uk-data-jobs-pipeline/uk-data-jobs-pipeline/seeds/known_sponsor_matches.csv' (FORMAT CSV, HEADER TRUE, DELIMITER ',')

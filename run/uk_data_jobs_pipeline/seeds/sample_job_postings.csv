@@ -1,9 +1,7 @@
 
     
     
-    
-    create table "warehouse"."main"."sample_job_postings" ("id" integer,"title" text,"company_name" text,"location_display" text,"salary_min" integer,"salary_max" integer,"description" text,"created_at" timestamp without time zone,"redirect_url" text,"search_term" text)
-  ;
+    truncate table "warehouse"."main"."sample_job_postings";
     -- dbt seed --
     
           COPY "warehouse"."main"."sample_job_postings" FROM '/home/runner/work/uk-data-jobs-pipeline/uk-data-jobs-pipeline/seeds/sample_job_postings.csv' (FORMAT CSV, HEADER TRUE, DELIMITER ',')

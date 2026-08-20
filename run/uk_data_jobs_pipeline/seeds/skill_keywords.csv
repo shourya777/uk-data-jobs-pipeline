@@ -1,9 +1,7 @@
 
     
     
-    
-    create table "warehouse"."main"."skill_keywords" ("skill_name" text,"pattern" text)
-  ;
+    truncate table "warehouse"."main"."skill_keywords";
     -- dbt seed --
     
           COPY "warehouse"."main"."skill_keywords" FROM '/home/runner/work/uk-data-jobs-pipeline/uk-data-jobs-pipeline/seeds/skill_keywords.csv' (FORMAT CSV, HEADER TRUE, DELIMITER ',')
